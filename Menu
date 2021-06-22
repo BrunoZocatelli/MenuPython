@@ -1,0 +1,194 @@
+from tkinter import *
+from tkinter import ttk
+import sqlite3
+
+root = Tk()
+
+
+class Funcs():
+    def limpa_tablet(self):
+        self.codigo_entry.delete(0, END)
+        self.Setor_entry.delete(0, END)
+        self.NS_entry.delete(0, END)
+        self.Linha_entry.delete(0, END)
+
+    def conecta_bd(self):
+        self.conn = sqlite3.connect("Tablets.db")
+        self.cursor = self.conn.cursor();
+        print("Conectando ao banco de dados")
+
+    def desconecta_bd(self):
+        self.conn.close();
+        print("Desconectando do banco de dados...")
+
+    def montaTabelas(self):
+        self.conecta_bd()
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS Tablets (
+                cod INTEGER PRIMARY KEY,
+                Setor CHAR(40) NOT NULL,
+                NS INTEGER(20),
+                Linha CHAR(40)               
+            );
+        """)
+        self.conn.commit();
+        print("Banco de dados criado")
+        self.desconecta_bd()
+
+    def variaveis(self):
+        self.codigo = self.codigo_entry.get()
+        self.Setor = self.Setor_entry.get()
+        self.NS = self.NS_entry.get()
+        self.Linha = self.Linha_entry.get()
+
+    def OnDoubleClick(self, event):
+        self.limpa_tablet()
+        self.listaTab.selection()
+
+        for n in self.listaTab.selection():
+            col1, col2, col3, col4 = self.listaTab.item(n, 'values')
+            self.codigo_entry.insert(END, col1)
+            self.Setor_entry.insert(END, col2)
+            self.NS_entry.insert(END, col3)
+            self.Linha_entry.insert(END, col4)
+
+    def add_Tablets(self):
+        self.variaveis()
+        self.conecta_bd()
+
+        self.cursor.execute(""" INSERT INTO Tablets (Setor, NS, Linha)
+            VALUES (?, ?, ?)""", (self.Setor, self.NS, self.Linha))
+        self.conn.commit()
+        self.desconecta_bd()
+        self.select_lista()
+        self.limpa_tablet()
+
+    def altera_tablets(self):
+        self.variaveis()
+        self.conecta_bd()
+        self.cursor.execute(""" UPDATE Tablets SET Setor_Tab = ?, NS = ?, Linha = ?
+            WHERE cod = ? """,
+                            (self.Setor, self.NS, self.Linha, self.codigo))
+        self.conn.commit()
+        self.desconecta_bd()
+        self.select_lista()
+        self.limpa_tablet()
+
+    def deleta_tablets(self):
+        self.variaveis()
+        self.conecta_bd()
+        self.cursor.execute("""DELETE FROM Tablets WHERE cod = ? """, (self.codigo))
+        self.conn.commit()
+        self.desconecta_bd()
+        self.limpa_tablet()
+        self.select_lista()
+
+    def select_lista(self):
+        self.listaTab.delete(*self.listaTab.get_children())
+        self.conecta_bd()
+        lista = self.cursor.execute(""" SELECT cod, Setor, NS, Linha FROM Tablets
+            ORDER BY Setor_Tab ASC; """)
+        for i in lista:
+            self.listaTab.insert("", END, values=i)
+        self.desconecta_bd()
+
+
+class Application(Funcs):
+    def __init__(self):
+        self.root = root
+        self.tela()
+        self.frames_da_tela()
+        self.widgets_frame1()
+        self.lista_frame2()
+        self.montaTabelas()
+        self.select_lista()
+        root.mainloop()
+
+    def tela(self):
+        self.root.title("Cadastro de Tablets")
+        self.root.configure(background='#1e3743')
+        self.root.geometry("700x500")
+        self.root.resizable(True, True)
+        self.root.maxsize(width=900, height=700)
+        self.root.minsize(width=500, height=400)
+
+    def frames_da_tela(self):
+        self.frame_1 = Frame(self.root, bd=4, bg='#dfe3ee',
+                             highlightbackground='#759fe6', highlightthickness=3)
+        self.frame_1.place(relx=0.02, rely=0.02, relwidth=0.96, relheight=0.46)
+
+        self.frame_2 = Frame(self.root, bd=4, bg='#dfe3ee',
+                             highlightbackground='#759fe6', highlightthickness=3)
+        self.frame_2.place(relx=0.02, rely=0.5, relwidth=0.96, relheight=0.46)
+
+    def widgets_frame1(self):
+
+        self.bt_limpar = Button(self.frame_1, text="Limpar", bd=2, bg='#107db2', fg='white'
+                                , font=('verdana', 8, 'bold'), command=self.limpa_tablet)
+        self.bt_limpar.place(relx=0.2, rely=0.1, relwidth=0.1, relheight=0.15)
+
+        self.bt_limpar = Button(self.frame_1, text="Buscar", bd=2, bg='#107db2', fg='white'
+                                , font=('verdana', 8, 'bold'))
+        self.bt_limpar.place(relx=0.3, rely=0.1, relwidth=0.1, relheight=0.15)
+
+        self.bt_limpar = Button(self.frame_1, text="Novo", bd=2, bg='#107db2', fg='white'
+                                , font=('verdana', 8, 'bold'), command=self.add_Tablets)
+        self.bt_limpar.place(relx=0.6, rely=0.1, relwidth=0.1, relheight=0.15)
+
+        self.bt_limpar = Button(self.frame_1, text="Alterar", bd=2, bg='#107db2', fg='white'
+                                , font=('verdana', 8, 'bold'), command=self.altera_tablets)
+        self.bt_limpar.place(relx=0.7, rely=0.1, relwidth=0.1, relheight=0.15)
+
+        self.bt_limpar = Button(self.frame_1, text="Apagar", bd=2, bg='#107db2', fg='white'
+                                , font=('verdana', 8, 'bold'), command=self.deleta_tablets)
+        self.bt_limpar.place(relx=0.8, rely=0.1, relwidth=0.1, relheight=0.15)
+
+
+        self.lb_codigo = Label(self.frame_1, text="Código", bg='#dfe3ee', fg='#107db2')
+        self.lb_codigo.place(relx=0.05, rely=0.05)
+
+        self.codigo_entry = Entry(self.frame_1)
+        self.codigo_entry.place(relx=0.05, rely=0.15, relwidth=0.08)
+
+
+        self.lb_Setor = Label(self.frame_1, text="Setor", bg='#dfe3ee', fg='#107db2')
+        self.lb_Setor.place(relx=0.05, rely=0.35)
+
+        self.Setor_entry = Entry(self.frame_1)
+        self.Setor_entry.place(relx=0.05, rely=0.45, relwidth=0.8)
+
+
+        self.lb_Setor = Label(self.frame_1, text="Número de Série", bg='#dfe3ee', fg='#107db2')
+        self.lb_Setor.place(relx=0.05, rely=0.6)
+
+        self.Linha_entry = Entry(self.frame_1)
+        self.Linha_entry.place(relx=0.05, rely=0.7, relwidth=0.4)
+
+
+        self.lb_Setor = Label(self.frame_1, text="Linha", bg='#dfe3ee', fg='#107db2')
+        self.lb_Setor.place(relx=0.5, rely=0.6)
+
+        self.Linha_entry = Entry(self.frame_1)
+        self.Linha_entry.place(relx=0.5, rely=0.7, relwidth=0.4)
+
+    def lista_frame2(self):
+        self.listaTab = ttk.Treeview(self.frame_2, height=3,
+                                     column=("col1", "col2", "col3", "col4"))
+        self.listaTab.heading("#0", text="")
+        self.listaTab.heading("#1", text="Codigo")
+        self.listaTab.heading("#2", text="Setor")
+        self.listaTab.heading("#3", text="Número de Série ")
+        self.listaTab.heading("#4", text="Linha")
+        self.listaTab.column("#0", width=1)
+        self.listaTab.column("#1", width=50)
+        self.listaTab.column("#2", width=200)
+        self.listaTab.column("#3", width=125)
+        self.listaTab.column("#4", width=125)
+        self.listaTab.place(relx=0.01, rely=0.1, relwidth=0.95, relheight=0.85)
+        self.scroolLista = Scrollbar(self.frame_2, orient='vertical')
+        self.listaTab.configure(yscroll=self.scroolLista.set)
+        self.scroolLista.place(relx=0.96, rely=0.1, relwidth=0.04, relheight=0.85)
+        self.listaTab.bind("<Double-1>", self.OnDoubleClick)
+
+
+Application()
